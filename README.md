@@ -9,10 +9,10 @@ An institutional-grade equity research skill and standalone Python toolkit that 
 ## Key Features
 
 - **Global & Chinese Market Coverage**: Supports US/global equities (`NVDA`, `GOOGL`, `SPCX`), Hong Kong stocks (`0700.HK`), China A-Shares (`600519.SS`, `002516.SZ`), ETFs, and macro commodities (`GC=F`).
-- **Automatic Language Matching**: With `--lang auto`, English stock names/inputs generate full English deliverables, while Chinese stock names/assets generate pure Chinese deliverables (using Chinese units `亿` instead of `B`, localized sectors/industries, and `暂无` for missing values).
+- **Automatic Language Matching**: With `--lang auto`, English stock names/inputs generate full English deliverables, while Chinese stock names/assets generate pure Chinese deliverables.
 - **10-Year Historical PE (TTM) & Valuation Bands**:
   - For A-Shares: pulls daily PE (TTM) history via EastMoney (`akshare`).
-  - For US/Global equities: pulls up to 10 years of daily price history paired with 4-quarter rolling `Reported EPS` (with annual `income_stmt` EPS and listing-history fallbacks) to generate 3Y/5Y/10Y percentiles, benchmark bands ($P_{10}, P_{25}, P_{50}, P_{75}, P_{90}$), and a 2-panel valuation chart.
+  - For US/Global equities: pulls up to 10 years of daily price history paired with 4-quarter rolling `Reported EPS` (with annual `income_stmt` EPS and listing-history fallbacks) to generate 3Y/5Y/10Y percentiles.
 - **3-Year Financial Performance & Moat Deep-Dive**: Side-by-side comparison of revenue, operating income, net income, margins, ROE, OCF, FCF, YoY growth, and 2-year CAGR.
 - **4-Panel Technical Chart & Tactical Trade Setup**: Price + 20/50/200 SMAs + Bollinger Bands, Volume + 20 SMA, RSI (14), and MACD (12, 26, 9), paired with accumulation zones, hard stop-loss levels, targets, and Risk-to-Reward ($R:R$) ratios.
 - **4-Quadrant Confluence Rating**: Synthesizes Technical and Fundamental scores into Categories **A** (High-Probability Compounder), **B** (Speculative Squeeze), **C** (Value Accumulation Watch), or **D** (High Risk / Value Trap).
