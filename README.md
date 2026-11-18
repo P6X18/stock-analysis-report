@@ -1,4 +1,4 @@
-# Stock Analysis Skill
+# Stock Analysis Report Skill (`stock-analysis`)
 
 A stock analysis agent skill and standalone Python toolkit that combines **Fundamental Analysis** (business quality, financial health, 3-year performance trends, and 10-year PE percentile valuation) with **Technical Analysis** (market structure, moving averages, RSI, MACD, Bollinger Bands, and risk-reward trade setups).
 
@@ -24,7 +24,7 @@ A stock analysis agent skill and standalone Python toolkit that combines **Funda
 
 ### 🌍 Multi-Market, Multilingual & Publication-Ready Outputs
 - **Global Asset Coverage**: Supports US/global equities (`NVDA`, `GOOGL`, `SPCX`), Hong Kong stocks (`0700.HK`), China A-Shares (`600519.SS`, `002516.SZ`), ETFs, and macro commodities (`GC=F`).
-- **Automatic Language Matching**: With `--lang auto`, English stock names/inputs generate English reports, while Chinese stock names/assets generate pure Chinese reports using Chinese units.
+- **Automatic Language Matching**: With `--lang auto`, English stock names/inputs generate English reports, while Chinese stock names/assets generate pure Chinese reports using Chinese units (`亿` instead of `B`), localized sector/industry names, and `暂无` for missing values.
 - **5 Synchronized Deliverables**: Produces Markdown (`.md`), responsive standalone HTML (`.html`), gap-free word-safe mobile & A4 PDFs (`.pdf`), high-resolution PNG charts, and structured JSON (`*_data.json`).
 
 ---
@@ -106,3 +106,9 @@ On Windows, `analyze_stock.py` and `compare_stocks.py` look for `msyh.ttc`, `msy
 ## Disclaimer
 
 This tool and its generated reports are for **educational and research purposes only** and do not constitute investment, financial, or trading advice. Financial markets carry substantial risk of loss; always verify data and conduct independent due diligence.
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
