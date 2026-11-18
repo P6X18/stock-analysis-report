@@ -9,13 +9,13 @@ A stock analysis agent skill and standalone Python toolkit that combines **Funda
 ## Key Features
 
 ### 📊 Fundamental Valuation & 10-Year PE Bands
-- **10-Year Historical PE (TTM) & Percentile Bands**: Pulls daily PE (TTM) via EastMoney (`akshare`) for China A-Shares, and pairs up to 10 years of daily price history with 4-quarter rolling `Reported EPS` (with annual `income_stmt` EPS and listing-history fallbacks) for US/Global equities — generating 3Y/5Y/10Y percentiles, $P_{10}$–$P_{90}$ benchmark bands, 5 valuation zones, and a 2-panel valuation chart.
+- **10-Year Historical PE (TTM) & Percentile Bands**: Pulls daily PE (TTM) via EastMoney (`akshare`) for China A-Shares, and pairs up to 10 years of daily price history with 4-quarter rolling `Reported EPS` (with annual `income_stmt` EPS and listing-history fallbacks) for US/Global equities — generating 3Y/5Y/10Y percentiles, P10 - P90 benchmark bands, 5 valuation zones, and a 2-panel valuation chart.
 - **3-Year Financial Performance & Moat Deep-Dive**: Tracks multi-year revenue, operating profit, net income, margins, ROE, OCF, FCF, YoY growth, and 2-year CAGR alongside sector positioning and competitive moats.
 - **Complete Valuation & Balance Sheet Scorecard**: Summarizes Market Cap, EV, Trailing/Forward P/E, PEG, P/S, P/B, EV/EBITDA, Debt/Equity, Dividend Yield, and analyst consensus targets.
 
 ### 📈 Technical Analysis & Tactical Trade Setups
 - **4-Panel Technical Chart**: Plots Price + 20/50/200 SMAs + Bollinger Bands (20, 2σ), Volume + 20 SMA, RSI (14), and MACD (12, 26, 9).
-- **Actionable Tactical Trade Plans**: Computes key support/resistance zones, accumulation ranges, hard invalidation stop-loss levels, primary/secondary targets, and Risk-to-Reward ($R:R$) ratios.
+- **Actionable Tactical Trade Plans**: Computes key support/resistance zones, accumulation ranges, hard invalidation stop-loss levels, primary/secondary targets, and Risk-to-Reward (`R:R`) ratios.
 - **4-Quadrant Confluence & Scenario Planning**: Synthesizes Technical and Fundamental scores into Categories **A** (High-Probability Compounder), **B** (Speculative Squeeze), **C** (Value Accumulation Watch), or **D** (High Risk / Value Trap), paired with Bull vs. Bear scenarios.
 
 ### ⚖️ Multi-Stock Horizontal Comparison & Ranking
