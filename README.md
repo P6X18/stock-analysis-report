@@ -59,7 +59,7 @@ Place this directory under `.agents/skills/stock-analysis` in your workspace (or
 or in Chinese:
 
 ```text
-/stock-analysis 新亚强、旷达科技、航发动力
+/stock-analysis 长江电力，工商银行，贵州茅台
 ```
 
 ### 2. Standalone CLI (`uv`)
