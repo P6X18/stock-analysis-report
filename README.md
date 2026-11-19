@@ -1,4 +1,4 @@
-# Stock Analysis Report Skill (`stock-analysis`)
+# Stock Analysis Skill
 
 A stock analysis agent skill and standalone Python toolkit that combines **Fundamental Analysis** (business quality, financial health, 3-year performance trends, and 10-year PE percentile valuation) with **Technical Analysis** (market structure, moving averages, RSI, MACD, Bollinger Bands, and risk-reward trade setups).
 
