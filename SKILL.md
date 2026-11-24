@@ -1,5 +1,5 @@
 ---
-name: stock-analysis
+name: stock-analysis-report
 description: Comprehensive stock analysis combining technical analysis (price trends, moving averages, momentum indicators RSI/MACD, support/resistance, volume) and fundamental analysis (valuation multiples, profitability, balance sheet health, cash flows, and growth metrics). Use whenever analyzing a ticker, evaluating stock price trends, or conducting equity research.
 ---
 
@@ -27,11 +27,11 @@ flowchart TD
 
 ### Phase 1: Data Acquisition
 1. **Identify Ticker(s) & Asset Class**: Verify the ticker(s) across exchanges (e.g., US: `AAPL`, `NVDA`; HK: `0700.HK`; A-share: `600519.SS`, `603155.SS`, `002516.SZ`, `600893.SS`; Global/ETF: `SPY`, `QQQ`).
-   - **Multi-Stock Input Support (多标的批量输入规范)**: When the user enters multiple stock names or tickers separated by commas,顿号 (`、`), spaces, or slashes (e.g., `/stock-analysis 新亚强、旷达科技、航发动力`), resolve the ticker for every requested stock and execute the analysis script for each stock so that every asset has its complete set of deliverables (`HTML`, `PDF`, `MD`, `PNG`, `JSON`) generated in its own subfolder.
+   - **Multi-Stock Input Support (多标的批量输入规范)**: When the user enters multiple stock names or tickers separated by commas,顿号 (`、`), spaces, or slashes (e.g., `/stock-analysis-report 新亚强、旷达科技、航发动力`), resolve the ticker for every requested stock and execute the analysis script for each stock so that every asset has its complete set of deliverables (`HTML`, `PDF`, `MD`, `PNG`, `JSON`) generated in its own subfolder.
 2. **Execute Analysis Script**:
    Run the bundled automated analysis script to pull live historical market data, compute technical indicators, extract financial statements, and generate multi-format deliverables (Markdown, HTML, and PDF):
    ```bash
-   uv run --with yfinance --with pandas --with matplotlib --with xhtml2pdf --with akshare python "G:/My Drive/AI/Antigravity/Financial analysis/.agents/skills/stock-analysis/scripts/analyze_stock.py" --ticker <TICKER> --period 1y --name "<STOCK_NAME>"
+   uv run --with yfinance --with pandas --with matplotlib --with xhtml2pdf --with akshare python "G:/My Drive/Antigravity/Financial analysis/.agents/skills/stock-analysis-report/scripts/analyze_stock.py" --ticker <TICKER> --period 1y --name "<STOCK_NAME>"
    ```
    *Options:*
    - `--period`: `6mo`, `1y` (default), `2y`, `5y`
@@ -86,7 +86,7 @@ flowchart TD
      - **Clean Header Badges & Tables**: Eliminate parenthetical clutter in rating badges and table headers:
        - Badges: `技术面: 弱势空头下行 · 1/5` and `基本面: 基本面稳健 · 3/5` instead of `(1/5)` or `(存在部分周期或估值压力) (3/5)`.
        - Confluence: `D类：高风险双杀 · 建议规避` instead of `（基本面恶化且趋势下行，建议规避）`.
-       - Table headers & metrics: `2025年最新`, `同比变动 YoY`, `2年复合变动 CAGR/差值`, `净资产收益率 ROE`, `经营活动现金流 OCF`, `自由现金流 FCF`, `市盈率 TTM / 动态`.
+       - Table headers & metrics: `2025年最新`, `同比变动 YoY`, `2年复合变动 CAGR/差值`, `净资产收益率 ROE`, `经营活动现金流 OCF`, `自由现金流 FCF`, `市盈率 (TTM / 动态)`.
    - **Unified Percentage Notation (统一使用 % 符号规范)**:
      Across all comparison tables (specifically including YoY and 2-year multi-period changes for Gross Margin, Operating Margin, Net Profit Margin, and ROE) and fundamental analytical narratives, strictly unify all percentage and margin differences with the `%` symbol (e.g. `-0.3%`, `+1.5%`, `-4.0%`), strictly prohibiting text descriptors such as `百分点`.
 
@@ -115,14 +115,15 @@ flowchart TD
 3. **Execute Multi-Stock Horizontal Comparison Script (多标的投资对比研判独立报告生成)**:
    Whenever **2 or more stocks** are analyzed in a single request, after generating the individual stock reports, run `compare_stocks.py` to generate a standalone **投资对比研判报告** in its own separate sub-folder:
    ```bash
-   uv run --with yfinance --with pandas --with numpy --with matplotlib --with mplfinance --with xhtml2pdf --with requests python "G:/My Drive/AI/Antigravity/Financial analysis/.agents/skills/stock-analysis/scripts/compare_stocks.py" --tickers <TICKER_1> <TICKER_2> <TICKER_3> --output-dir "./stock_analysis_output"
+   uv run --with yfinance --with pandas --with numpy --with matplotlib --with mplfinance --with xhtml2pdf --with requests python "G:/My Drive/Antigravity/Financial analysis/.agents/skills/stock-analysis-report/scripts/compare_stocks.py" --tickers <TICKER_1> <TICKER_2> <TICKER_3> --output-dir "./stock_analysis_output"
    ```
    *Dedicated Multi-Stock Comparison Folder & Deliverables:*
    Creates a separate folder `stock_analysis_output/投资对比研判报告 - <Stock1>_<Stock2>_.../` (e.g. `stock_analysis_output/投资对比研判报告 - 新亚强_旷达科技_航发动力/`) containing:
-   - `<Stock1>_<Stock2>_..._投资对比研判报告.html` (Standalone responsive HTML comparison dashboard with priority KPI cards, 11-row core quantitative & fundamental matrix, 7-column tactical trade setup matrix, and institutional priority ranking cards; strictly omits redundant embedded chart galleries so the comparison report stays focused and compact)
-   - `<Stock1>_<Stock2>_..._投资对比研判报告.pdf` (A4 print/PDF edition of the horizontal comparison report with strict cell-box boundary containment, multi-line `div` cell stacking, and zero text overflow)
+   - `<Stock1>_<Stock2>_..._投资对比研判报告.html` (Standalone responsive HTML comparison dashboard with a two-line header banner placing stock names on a dedicated `.header-stocks` line below the title, priority KPI cards, 11-row core quantitative & fundamental matrix, 7-column tactical trade setup matrix, and institutional priority ranking cards; strictly omits redundant embedded chart galleries so the comparison report stays focused and compact)
+   - `<Stock1>_<Stock2>_..._投资对比研判报告.pdf` (Mobile-adapted `112mm x 220mm` smartphone vertical PDF edition of the comparison report with a two-line header banner, vertically stacked KPI cards, dimension-grouped comparison blocks, vertical tactical trade cards, and full-width priority recommendation cards)
    - `<Stock1>_<Stock2>_..._投资对比研判报告.md` (Full Markdown horizontal comparison report)
    - `comparison_data.json` (Structured ranking scores, priority recommendations, and deliverable paths)
+   - **Automatic TTM Alignment for Heterogeneous Fiscal Year-Ends**: When compared equities have different latest annual fiscal year-ends (e.g., Jan-end FY26 vs. Dec-end FY25) and TTM fields (`total_revenue_ttm`, `net_income_ttm`) are present in `<ticker>_data.json`, `compare_stocks.py` automatically aligns Revenue, Net Income, Gross Margin/ROE, Operating Cash Flow, and Priority Recommendations on **TTM (Trailing Twelve Months)** across all deliverables for an apples-to-apples comparison.
 
 ---
 
@@ -253,7 +254,7 @@ When executing the skill or presenting findings to the user, ensure all institut
      - English reports omit `-pdf-word-wrap: CJK` and `word-break: break-all`, relying on native word-level wrapping (`word-wrap: break-word`) so English words are always kept whole on the same line (never split mid-word such as `d` / `eep`). Chinese reports use `-pdf-word-wrap: CJK` paired with a word-boundary-safe `xhtml2pdf`/`ReportLab` patch so CJK text wraps seamlessly at margins while embedded English words/tickers stay unbroken on the same line and `<br/>` line breaks are preserved.
      - **Header Rating Badges Stack & Optical Vertical Centering (顶部评级胶囊标签垂直居中规范)**: Rating badges (`技术面`, `基本面`, `战术定性`) in the top banner transform into a vertically stacked table layout (`td style="padding: 1.5px 0;"`). To counter ReportLab / CJK font baseline metrics (where Chinese glyphs sit high with excess bottom descent), badges enforce optical vertical centering (`padding: 3.4px 8px 1.5px 8px; line-height: 1.0; vertical-align: middle;`), ensuring the white text is optically and geometrically dead-center within the colored pill badge with equal top and bottom color margins.
      - **Company Business Profile (公司主营业务概况)**: Long profile paragraphs wrap seamlessly across lines within the blue-accented container.
-     - **Optimized Institutional Body Typography (主体文字字号与排版标准)**: All body narratives, analytical commentary, investment thesis summaries, profile descriptions, and checklist points enforce enlarged institutional reading sizes (Mobile PDF: base body 9.8pt, narratives & profile 9.0pt, thesis points & checklist 8.8pt, section subtitles 9.3pt - 9.6pt, table cells 7.3pt - 7.8pt; A4 Comparison PDF: base body 9.5pt, table cells 8.5pt - 8.8pt; Desktop HTML: base body 15.5px, narratives 14.5px - 15.5px, table cells 14.5px), ensuring effortless readability on modern high-DPI smartphone screens and desktop PDF viewers.
+     - **Optimized Institutional Body Typography (主体文字字号与排版标准)**: All body narratives, analytical commentary, investment thesis summaries, profile descriptions, and checklist points enforce enlarged institutional reading sizes (Mobile Single-Stock PDF: base body 9.8pt, narratives & profile 9.0pt, thesis points & checklist 8.8pt, section subtitles 9.3pt - 9.6pt, table cells 7.3pt - 7.8pt; Mobile Comparison PDF: base body 9.2pt, KPI & dimension blocks 8.3pt - 8.8pt, recommendation body 8.8pt; Desktop HTML: base body 15.5px, narratives 14.5px - 15.5px, table cells 14.5px), ensuring effortless readability on modern high-DPI smartphone screens and desktop PDF viewers.
    - **Balanced 2x2 KPI Grid**: Transforms the 4-card KPI strip into a 2x2 grid (`最新价格 & 涨跌`, `估值与历史分位`, `资本回报与质量`, `动能与波动率`) with bold headline figures (`12.5pt - 13pt`) and compact sub-metrics.
    - **Full-Width Stacked Scenarios**: Bull and Bear scenario cards stack vertically at 100% width, eliminating cramped multi-column text wrap and highlighting catalysts and risks cleanly.
    - **Generous Section Title Distance & Spacing (各章节段落标题上方留出空行与舒适间距规范)**: Every primary section title (`h2`) enforces a generous top separation (`margin: 16px 0 5px 0; padding-top: 4px; border-bottom: 1.5px solid #cbd5e1;`) and subsection titles (`h3`) enforce `margin: 12px 0 4px 0;` (with module wrapper containers enforcing `margin-top: 14px; margin-bottom: 6px;`). This guarantees clear, comfortable breathing room above every heading, preventing title crowding.
@@ -262,7 +263,8 @@ When executing the skill or presenting findings to the user, ensure all institut
    - **Disclaimer Spacing (免责声明紧凑页脚规范)**:
      The bottom legal/regulatory disclaimer enforces a clean top separation (`margin-top: 16px; padding-top: 8px; border-top: 1px solid #cbd5e1;`), avoiding unnecessary trailing blank pages.
    - **Continuous Gap-Free Mobile Flow & Fundamentals-First Order (无强制分页符与基本面前置流式排版规范)**:
-     - **No Forced Page Breaks (去除页间强制空白)**: Forced `<div style="page-break-before: always;"></div>` breaks are removed in both single-stock mobile PDFs and A4 comparison PDFs so content flows continuously from page to page with minimal blank space.
+     - **No Forced Page Breaks (去除页间强制空白)**: Forced `<div style="page-break-before: always;"></div>` breaks are removed in both single-stock mobile PDFs and mobile comparison PDFs so content flows continuously from page to page with minimal blank space.
+     - **Mobile Comparison PDF Structure**: Uses the `112mm x 220mm` vertical viewport with a two-line header banner (report title on line 1, stock names on a dedicated `.header-stocks` line), vertically stacked KPI cards, dimension-grouped comparison blocks, 2x2 vertical tactical trade cards, and full-width priority recommendation cards.
      - **Fundamentals-First Section Order (基本面前置于技术图表)**: Section 3 presents `基本面估值、盈利质量与护城河` (including 10-year PE (TTM) historical valuation bands & 3-year performance matrix), followed by Section 4 (`多周期技术分析图表`) and Section 5 (`技术面深度剖析与微观量价结构`).
      - **Heading & Row Defense**: Enforces `h1, h2, h3, h4 { page-break-after: avoid; }` and `tr, .chart-container, img, .kpi-table, .company-profile-box, .confluence-box, .trade-setup-card, .scenario-table { page-break-inside: avoid; }` across all pages to prevent isolated titles or bisected cards/rows.
 
@@ -279,7 +281,7 @@ When a single stock is analyzed, present a clean, 3-part institutional summary:
    - `> **公司概况**：...` (2-3 sentence summary of core track, main products, and single-champion / strategic moat).
    - `- 📌 **一句话定性研判**：...` (identifying confluence category, technical/fundamental scores, tactical bias, latest price, and MA alignment).
    - **4-Row Core Metrics Table** (`| 核心维度 | 当前数值 | 机构对标与关键观察 |`):
-     - `**最新现价 & 52周位置**`
+     - `**最新现价 & 过去一年位置**`
      - `**市盈率与历史分位**` (PE (TTM), 10Y percentile, median, 10Y range `[Min - Max]`, valuation zone)
      - `**盈利回报与资产负债**` (ROE, Dividend Yield, P/B, debt/cash cushion)
      - `**趋势动能与波幅**` (14D RSI, ATR, 20/50/200 MA values, volume/MACD status)
@@ -295,7 +297,7 @@ When a single stock is analyzed, present a clean, 3-part institutional summary:
 
 #### 6.2 Multi-Stock Horizontal Comparison & Configuration Priority Style (多标的横向对比与配置研判输出规范)
 
-When the user enters **multiple stock names or tickers** (e.g., `/stock-analysis 新亚强、旷达科技、航发动力`), first run `analyze_stock.py` for every stock so each stock has its own updated deliverables, then output the **Multi-Stock Horizontal Comparison & Portfolio Allocation Report** in the exact 4-section structure below:
+When the user enters **multiple stock names or tickers** (e.g., `/stock-analysis-report 新亚强、旷达科技、航发动力`), first run `analyze_stock.py` for every stock so each stock has its own updated deliverables, then output the **Multi-Stock Horizontal Comparison & Portfolio Allocation Report** in the exact 4-section structure below:
 
 ##### Section 1: `#### 1. 核心量化与基本面横向对比矩阵`
 Construct an 11-row side-by-side Markdown table comparing all requested stocks (`| 对比维度 | **股票A** (代码) | **股票B** (代码) | **股票C** (代码) |`), ordered from highest allocation priority to lowest:
@@ -303,7 +305,7 @@ Construct an 11-row side-by-side Markdown table comparing all requested stocks (
 | 对比维度 | **股票A** (`代码`) | **股票B** (`代码`) | **股票C** (`代码`) |
 | :--- | :--- | :--- | :--- |
 | **核心赛道与壁垒** | 核心主业 + 第二曲线<br>核心资质 / 护城河壁垒 | 核心主业 / 细分领域<br>单项冠军 / 全产业链配套壁垒 | 核心主业 / 国家战略定位<br>专营总装资质与准入壁垒 |
-| **最新现价 / 52周回撤** | **¥X.XX**（距高点 `-XX.X%`） | **¥XX.XX**（距高点 `-XX.X%`） | **¥XX.XX**（距高点 `-XX.X%`） |
+| **最新现价 / 过去一年回撤** | **¥X.XX**（距高点 `-XX.X%`） | **¥XX.XX**（距高点 `-XX.X%`） | **¥XX.XX**（距高点 `-XX.X%`） |
 | **技术面 / 基本面评分** | 技术面 `X/5` \| 基本面 `X/5` | 技术面 `X/5` \| 基本面 `X/5` | 技术面 `X/5` \| 基本面 `X/5` |
 | **机构共振评级** | **X类：评级定性描述** | **X类：评级定性描述** | **X类：评级定性描述** |
 | **PE (TTM) 与10年分位** | **XX.X倍**（10年分位 **XX.X%** · 估值分区）<br>*补充3年/5年分位或估值特征说明* | **XX.X倍**（10年分位 **XX.X%** · 估值分区）<br>*补充周期底部被动推高PE等说明* | **XXX.X倍**（10年分位 **XX.X%** · 估值分区）<br>*补充动态PE、P/S等辅助锚点* |

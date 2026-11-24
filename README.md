@@ -32,7 +32,7 @@ A stock analysis agent skill and standalone Python toolkit that combines **Funda
 ## Repository Structure
 
 ```text
-stock-analysis/
+stock-analysis-report/
 ├── SKILL.md                          # Agent skill instructions & formatting standards
 ├── README.md                         # Project overview & usage guide
 ├── scripts/
@@ -50,16 +50,16 @@ stock-analysis/
 
 ### 1. As an Agent Skill
 
-Place this directory under `.agents/skills/stock-analysis` in your workspace (or global skills directory) and invoke:
+Place this directory under `.agents/skills/stock-analysis-report` in your workspace (or global skills directory) and invoke:
 
 ```text
-/stock-analysis SpaceX, Google, Nvidia
+/stock-analysis-report SpaceX, Google, Nvidia
 ```
 
 or in Chinese:
 
 ```text
-/stock-analysis 长江电力，工商银行，贵州茅台
+/stock-analysis-report 长江电力，工商银行，贵州茅台
 ```
 
 ### 2. Standalone CLI (`uv`)
