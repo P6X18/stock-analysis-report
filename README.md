@@ -1,114 +1,58 @@
-# Stock Analysis Skill
+# Stock Analysis Report (`stock-analysis-report`)
 
-A stock analysis agent skill and standalone Python toolkit that combines **Fundamental Analysis** (business quality, financial health, 3-year performance trends, and 10-year PE percentile valuation) with **Technical Analysis** (market structure, moving averages, RSI, MACD, Bollinger Bands, and risk-reward trade setups).
+An agent skill and standalone Python toolkit integrating **Fundamental Analysis** (moat, 3-year financial trajectory, and 10-year PE percentile bands) with **Technical Analysis** (market structure, SMAs, RSI, MACD, Bollinger Bands, and R:R trade setups) into multilingual **HTML, mobile-native PDF, Markdown, PNG, and JSON** reports.
 
-> **Core Philosophy**: Fundamentals identify *what* to buy or avoid (business value and safety margin); Technicals determine *when* and *at what price* to execute (market timing, trend alignment, and risk-reward structure).
+> **Core Philosophy**: Fundamentals identify *what* to buy or avoid (business value & margin of safety); Technicals determine *when* and *at what price* to execute (trend alignment & risk-reward).
 
----
+## Highlights
 
-## Key Features
+- **📊 Valuation & Fundamentals**: 3Y/5Y/10Y historical PE (TTM) percentiles, P10-P90 valuation bands, 2-panel PE chart (EastMoney daily series for China A-shares; rolling EPS / price-implied history for global equities), 3-year performance & CAGR matrix, ROE, OCF/FCF, Debt/Equity, and analyst targets.
+- **📈 Technicals & Trade Setups**: High-res 4-panel chart (Price + 20/50/200 SMAs + Bollinger Bands, Volume, RSI-14, MACD), key support/resistance, entry zone, hard stop-loss, Target 1/2, `R:R` ratio, and 4-quadrant confluence rating (**Category A-D**) with Bull/Bear scenarios.
+- **⚖️ Multi-Stock Comparison & TTM Alignment**: Ranks 2+ stocks by composite quality, valuation, and trend; automatically aligns Revenue, Net Income, Margins, and OCF on **TTM** when fiscal year-ends differ (e.g., Jan FY26 vs. Dec FY25).
+- **📱 Mobile-Native & Multilingual Deliverables**: Generates `.md`, desktop `.html`, gap-free `112mm x 220mm` vertical smartphone `.pdf` (stacked KPI, comparison, and tactical cards for both single-stock and comparison reports), `.png` charts, and `*_data.json`. `--lang auto` outputs English for global inputs and pure Chinese (`亿` units) for Chinese inputs/equities.
 
-### 📊 Fundamental Valuation & 10-Year PE Bands
-- **10-Year Historical PE (TTM) & Percentile Bands**: Pulls daily PE (TTM) via EastMoney (`akshare`) for China A-Shares, and pairs up to 10 years of daily price history with 4-quarter rolling `Reported EPS` (with annual `income_stmt` EPS and listing-history fallbacks) for US/Global equities — generating 3Y/5Y/10Y percentiles, P10 - P90 benchmark bands, 5 valuation zones, and a 2-panel valuation chart.
-- **3-Year Financial Performance & Moat Deep-Dive**: Tracks multi-year revenue, operating profit, net income, margins, ROE, OCF, FCF, YoY growth, and 2-year CAGR alongside sector positioning and competitive moats.
-- **Complete Valuation & Balance Sheet Scorecard**: Summarizes Market Cap, EV, Trailing/Forward P/E, PEG, P/S, P/B, EV/EBITDA, Debt/Equity, Dividend Yield, and analyst consensus targets.
-
-### 📈 Technical Analysis & Tactical Trade Setups
-- **4-Panel Technical Chart**: Plots Price + 20/50/200 SMAs + Bollinger Bands (20, 2σ), Volume + 20 SMA, RSI (14), and MACD (12, 26, 9).
-- **Actionable Tactical Trade Plans**: Computes key support/resistance zones, accumulation ranges, hard invalidation stop-loss levels, primary/secondary targets, and Risk-to-Reward (`R:R`) ratios.
-- **4-Quadrant Confluence & Scenario Planning**: Synthesizes Technical and Fundamental scores into Categories **A** (High-Probability Compounder), **B** (Speculative Squeeze), **C** (Value Accumulation Watch), or **D** (High Risk / Value Trap), paired with Bull vs. Bear scenarios.
-
-### ⚖️ Multi-Stock Horizontal Comparison & Ranking
-- **Dedicated Comparison Dashboard**: When analyzing 2+ stocks, automatically ranks candidates by composite quality, valuation, and technical alignment into a standalone portfolio report.
-- **Structured Side-by-Side Matrices**: Includes top priority KPI cards, an 11-row fundamental & valuation comparison matrix, a 7-column tactical trade & risk matrix, and actionable allocation commentary.
-
-### 🌍 Multi-Market, Multilingual & Publication-Ready Outputs
-- **Global Asset Coverage**: Supports US/global equities (`NVDA`, `GOOGL`, `SPCX`), Hong Kong stocks (`0700.HK`), China A-Shares (`600519.SS`, `002516.SZ`), ETFs, and macro commodities (`GC=F`).
-- **Automatic Language Matching**: With `--lang auto`, English stock names/inputs generate English reports, while Chinese stock names/assets generate pure Chinese reports using Chinese units.
-- **5 Synchronized Deliverables**: Produces Markdown (`.md`), responsive standalone HTML (`.html`), gap-free word-safe mobile & A4 PDFs (`.pdf`), high-resolution PNG charts, and structured JSON (`*_data.json`).
-
----
-
-## Repository Structure
+## Structure
 
 ```text
 stock-analysis-report/
-├── SKILL.md                          # Agent skill instructions & formatting standards
-├── README.md                         # Project overview & usage guide
+├── SKILL.md                   # Agent skill workflow & formatting standards
 ├── scripts/
-│   ├── analyze_stock.py              # Single-stock fundamental + technical analyzer
-│   └── compare_stocks.py             # Multi-stock horizontal comparison & ranking generator
-└── references/
-    ├── fundamental-metrics.md        # Sector valuation & financial health benchmarks
-    ├── technical-indicators.md       # Indicator definitions, formulas, and edge cases
-    └── confluence-framework.md       # 4-quadrant scoring & risk/reward matrix
+│   ├── analyze_stock.py       # Single-stock analyzer & report generator
+│   └── compare_stocks.py      # Multi-stock comparison & priority ranker
+├── fonts/                     # Bundled CJK & UI fonts for PDF rendering
+└── references/                # Fundamental, technical & confluence guides
 ```
 
----
-
-## Usage
+## Quick Start
 
 ### 1. As an Agent Skill
-
-Place this directory under `.agents/skills/stock-analysis-report` in your workspace (or global skills directory) and invoke:
-
-```text
-/stock-analysis-report SpaceX, Google, Nvidia
-```
-
-or in Chinese:
+Place under `.agents/skills/stock-analysis-report` (workspace or global skills directory) and run:
 
 ```text
+/stock-analysis-report Google, SpaceX, Nvidia
 /stock-analysis-report 长江电力，工商银行，贵州茅台
 ```
 
-### 2. Standalone CLI (`uv`)
-
-Requires Python 3.10+ and [`uv`](https://docs.astral.sh/uv/).
-
-**Analyze a single stock (English auto-detected):**
+### 2. Standalone CLI (Python 3.10+ & [`uv`](https://docs.astral.sh/uv/))
 
 ```bash
-uv run --with yfinance --with pandas --with matplotlib --with xhtml2pdf --with akshare python scripts/analyze_stock.py --ticker NVDA --period 1y --name "Nvidia"
+# Single stock (English or Chinese auto-detected via --lang auto)
+uv run --with yfinance --with pandas --with matplotlib --with xhtml2pdf --with akshare \
+  python scripts/analyze_stock.py --ticker NVDA --period 1y --name "Nvidia"
+
+# Multi-stock horizontal comparison & ranking (run after analyzing 2+ tickers)
+uv run --with yfinance --with pandas --with numpy --with matplotlib --with mplfinance --with xhtml2pdf --with requests \
+  python scripts/compare_stocks.py --tickers GOOGL SPCX NVDA --output-dir "./stock_analysis_output"
 ```
 
-**Analyze a Chinese stock (Chinese auto-detected):**
-
-```bash
-uv run --with yfinance --with pandas --with matplotlib --with xhtml2pdf --with akshare python scripts/analyze_stock.py --ticker 603155.SS --period 1y --name "新亚强"
-```
-
-**Generate a multi-stock comparison report (after analyzing 2+ stocks):**
-
-```bash
-uv run --with yfinance --with pandas --with numpy --with matplotlib --with mplfinance --with xhtml2pdf --with requests python scripts/compare_stocks.py --tickers SPCX GOOGL NVDA --output-dir "./stock_analysis_output"
-```
-
-#### Common Options (`analyze_stock.py`)
-
-| Flag | Default | Description |
+| Option (`analyze_stock.py`) | Default | Description |
 | :--- | :--- | :--- |
-| `--ticker` | *(required)* | Ticker symbol or Chinese/English stock name |
-| `--name` | auto | Display name (English name selects `en`; Chinese name selects `zh` in `auto` mode) |
-| `--period` | `1y` | Chart & technical lookback (`6mo`, `1y`, `2y`, `5y`) |
-| `--interval` | `1d` | Bar frequency (`1d`, `1wk`, `1mo`) |
-| `--lang` | `auto` | Output language (`auto`, `en`, `zh`) |
-| `--output-dir` | `./stock_analysis_output` | Base output directory |
+| `--ticker` | *(required)* | Ticker symbol (`NVDA`, `0700.HK`, `600519.SS`, `GC=F`) |
+| `--name` | auto | Display name (sets `en` or `zh` when `--lang auto`) |
+| `--period` / `--interval` | `1y` / `1d` | Lookback (`6mo`, `1y`, `2y`, `5y`) and bar interval (`1d`, `1wk`, `1mo`) |
+| `--lang` | `auto` | Report language (`auto`, `en`, `zh`) |
+| `--output-dir` | `./stock_analysis_output` | Base output folder |
 
----
+## Disclaimer & License
 
-## Font Notes (Optional for PDF CJK Rendering)
-
-On Windows, `analyze_stock.py` and `compare_stocks.py` look for `msyh.ttc`, `msyhbd.ttc`, `segoeui.ttf`, and `segoeuib.ttf` in a local `fonts/` folder or fall back to `C:/Windows/Fonts`. On macOS/Linux, place compatible CJK/sans-serif fonts inside `fonts/` if generating Chinese PDFs.
-
----
-
-## Disclaimer
-
-This tool and its generated reports are for **educational and research purposes only** and do not constitute investment, financial, or trading advice. Financial markets carry substantial risk of loss; always verify data and conduct independent due diligence.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+For **educational and research purposes only** — not investment or trading advice. Licensed under the [MIT License](LICENSE).
