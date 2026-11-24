@@ -1190,7 +1190,7 @@ def generate_pe_percentile_chart(ticker_sym: str, company_name: str, output_path
     ax1.set_ylim(0, max(max_pe, p90, cur_pe) * 1.30)
     ax1.set_xlim(x_min, x_max)
 
-    pe_label = f"PE TTM 走势 · 当前 {cur_pe:.1f}倍" if is_zh else f"PE (TTM) History (Current: {cur_pe:.1f}x)"
+    pe_label = f"PE (TTM) 走势 · 当前 {cur_pe:.1f}倍" if is_zh else f"PE (TTM) History (Current: {cur_pe:.1f}x)"
     ax1.plot(dates, pe_series, color="#1d4ed8", linewidth=2.0, label=pe_label, zorder=4)
 
     # Horizontal benchmark lines
@@ -1250,7 +1250,7 @@ def generate_pe_percentile_chart(ticker_sym: str, company_name: str, output_path
     )
     summary_card = (
         f"  最新估值核定\n"
-        f"  • 当前 PE TTM: {cur_pe:.1f}倍，历史分位 {cur_pct:.1f}%\n"
+        f"  • 当前 PE (TTM): {cur_pe:.1f}倍，历史分位 {cur_pct:.1f}%\n"
         f"  • 估值中枢: {p50:.1f}倍   安全边际: {p10:.1f}倍 - {p25:.1f}倍\n"
         f"  • 研判状态: {status_txt}，防范盈利下行估值陷阱  "
         if is_zh else
@@ -1269,12 +1269,12 @@ def generate_pe_percentile_chart(ticker_sym: str, company_name: str, output_path
     )
 
     title_txt = (
-        f"{company_name} {ticker_sym} · PE TTM 历史估值走势与分位数带宽"
+        f"{company_name} {ticker_sym} · PE (TTM) 历史估值走势与分位数带宽"
         if is_zh else
         f"{company_name} ({ticker_sym}) 10-Year Historical PE (TTM) & Valuation Percentile Bands"
     )
     ax1.set_title(title_txt, fontsize=15, fontproperties=font_prop_bold, pad=12, color="#0f172a")
-    ax1.set_ylabel("市盈率 PE TTM" if is_zh else "Trailing P/E Ratio", fontsize=11, fontproperties=font_prop_bold, color="#1e293b")
+    ax1.set_ylabel("市盈率 PE (TTM)" if is_zh else "Trailing P/E Ratio", fontsize=11, fontproperties=font_prop_bold, color="#1e293b")
     leg1 = ax1.legend(loc="upper left", frameon=True, facecolor="#ffffff", framealpha=0.95, edgecolor="#cbd5e1", fontsize=9, ncol=2)
     if font_prop:
         for text in leg1.get_texts():
@@ -1845,7 +1845,7 @@ def build_fundamental_analysis_sections(meta: dict, fund: dict, is_zh: bool = Tr
             pe_interp = "当前估值与盈利增长中枢匹配度较好，下行安全边际充足；"
 
         val_analysis = (
-            f"估值层面，当前 PE 报 {pe_str}，处于 10年历史分位 {pe_pct_str} · {pe_zone}。"
+            f"估值层面，当前 PE (TTM) 报 {pe_str}，处于 10年历史分位 {pe_pct_str} · {pe_zone}。"
             f"{pe_interp}"
             f"卖方平均目标价为 {target_str}，机构评级为「{rec_zh}」，主流机构对其长期复利空间保持关注。"
         )
@@ -1933,7 +1933,9 @@ def build_fundamental_analysis_sections(meta: dict, fund: dict, is_zh: bool = Tr
                 f"Gross margin stood at {gm_lat:.1f}% with ROE of {roe_lat:.1f}%. {cf_txt_en}"
             )
         else:
-            perf_analysis = f"Latest filings record revenue growth of {fund.get('revenue_growth', 0)*100:+.1f}% and ROE of {fund.get('return_on_equity', 0)*100:.1f}%, moving in lockstep with sector fundamentals."
+            rev_g_val = (fund.get('revenue_growth') or 0) * 100
+            roe_g_val = (fund.get('return_on_equity') or 0) * 100
+            perf_analysis = f"Latest filings record revenue growth of {rev_g_val:+.1f}% and ROE of {roe_g_val:.1f}%, moving in lockstep with sector fundamentals."
 
         pe_val = fund.get("trailing_pe")
         pe_pct_10y = fund.get("pe_10y_percentile") if fund.get("pe_10y_percentile") is not None else fund.get("pe_3y_percentile")
@@ -2024,7 +2026,7 @@ def generate_analytical_narratives(meta: dict, tech: dict, fund: dict, conf: dic
         )
 
         tech_takeaway = (
-            f"现价距52周高点已回撤 **{abs(drawdown_52w):.1f}%**，14日 RSI 报 **{rsi:.1f}** · {rsi_state_short}，"
+            f"现价距过去一年高点已回撤 **{abs(drawdown_52w):.1f}%**，14日 RSI 报 **{rsi:.1f}** · {rsi_state_short}，"
             f"短期杀跌动能趋缓，首要紧盯下方关键支撑 **{curr_sym}{supp:.2f}** 的企稳承接信号。"
         )
 
@@ -2082,7 +2084,7 @@ def generate_analytical_narratives(meta: dict, tech: dict, fund: dict, conf: dic
                 fund_analysis_takeaway = f"{meta['company_name']}深耕 {sec_ind_disp} 核心赛道{moat_tag}{rev_g_txt}，主营业务与产业链需求景气周期保持同步。"
 
             fund_takeaway = (
-                f"PE 报 **{pe_str}**，10年历史分位 **{pe_pct_str}** · {pe_zone}；"
+                f"PE (TTM) 报 **{pe_str}**，10年历史分位 **{pe_pct_str}** · {pe_zone}；"
                 f"ROE 报 **{roe_str}**，股息率达 **{div_yield_str}**，整体财务结构稳健，现金储备与分红提供扎实安全垫。"
             )
         else:
@@ -2115,9 +2117,9 @@ def generate_analytical_narratives(meta: dict, tech: dict, fund: dict, conf: dic
         </div>
         <div class="thesis-points-title">核心逻辑拆解：</div>
         <ul class="thesis-points">
-            <li><strong>走势与形态：</strong> 现价距52周高点已回撤 <strong>{abs(drawdown_52w):.1f}%</strong>，14日 RSI 报 <strong>{rsi:.1f}</strong> · {rsi_state_short}，短期杀跌动能趋缓，首要紧盯下方关键支撑 <strong>{curr_sym}{supp:.2f}</strong> 的企稳承接信号。</li>
+            <li><strong>走势与形态：</strong> 现价距过去一年高点已回撤 <strong>{abs(drawdown_52w):.1f}%</strong>，14日 RSI 报 <strong>{rsi:.1f}</strong> · {rsi_state_short}，短期杀跌动能趋缓，首要紧盯下方关键支撑 <strong>{curr_sym}{supp:.2f}</strong> 的企稳承接信号。</li>
             <li><strong>基本面分析：</strong> {fund_analysis_takeaway}</li>
-            <li><strong>估值与质地：</strong> {f"PE 报 <strong>{pe_str}</strong>，10年历史分位 <strong>{pe_pct_str}</strong> · {pe_zone}；ROE 报 <strong>{roe_str}</strong>，股息率达 <strong>{div_yield_str}</strong>，整体财务结构稳健，现金储备与分红提供扎实安全垫。" if not is_commodity_or_currency else "宏观定价受实际利率中枢与美元信用扩张周期约束，主权资产再平衡与避险溢价提供坚固安全底线。"}</li>
+            <li><strong>估值与质地：</strong> {f"PE (TTM) 报 <strong>{pe_str}</strong>，10年历史分位 <strong>{pe_pct_str}</strong> · {pe_zone}；ROE 报 <strong>{roe_str}</strong>，股息率达 <strong>{div_yield_str}</strong>，整体财务结构稳健，现金储备与分红提供扎实安全垫。" if not is_commodity_or_currency else "宏观定价受实际利率中枢与美元信用扩张周期约束，主权资产再平衡与避险溢价提供坚固安全底线。"}</li>
             <li><strong>战术与风控：</strong> 维持 <strong>{trade['bias']}</strong> 策略纪律，建议逢低布局关注区间 <strong>{trade['entry_zone']}</strong>，坚决设守止损线 <strong>{trade['stop_loss']}</strong>，第一上行目标看向 <strong>{trade['target_1']}</strong>，预期盈亏比 <strong>{trade['rr_ratio']}</strong>。</li>
         </ul>
         """
@@ -2146,14 +2148,14 @@ def generate_analytical_narratives(meta: dict, tech: dict, fund: dict, conf: dic
 
         # 4. Bull & Bear Scenarios
         bull_case = [
-            f"**技术突破确立**：价格放量突破阻力位 {curr_sym}{res:.2f}，且维持在20日均线上方运行，打开向第一目标 {trade['target_1']} 及52周高点 {curr_sym}{tech['52_week_high']} 的上攻空间。",
+            f"**技术突破确立**：价格放量突破阻力位 {curr_sym}{res:.2f}，且维持在20日均线上方运行，打开向第一目标 {trade['target_1']} 及过去一年高点 {curr_sym}{tech['52_week_high']} 的上攻空间。",
             f"**基本面与盈利催化**：核心业务收入与利润率超预期释放，FCF现金流加速，机构估值模型向远期上修。",
             f"**宏观/流动性共振**：行业流动性改善，板块估值修复，多头共振推动估值与盈利双击。"
         ]
         bear_case = [
             f"**关键支撑失守破位**：价格有效跌破支撑位 {curr_sym}{supp:.2f}，触发止损底线 {trade['stop_loss']}，均线系统转向死叉空头压制。",
             f"**基本面增速放缓**：下游需求疲软或竞争加剧导致毛利率与ROE承压，卖方下调盈利预测导致估值去泡沫化。",
-            f"**宏观系统性冲击**：流动性紧缩或利率维持高位，压制整体市场风险偏好，引发资金流出回调至52周低位 {curr_sym}{tech['52_week_low']}。"
+            f"**宏观系统性冲击**：流动性紧缩或利率维持高位，压制整体市场风险偏好，引发资金流出回调至过去一年低位 {curr_sym}{tech['52_week_low']}。"
         ]
 
         # 5. Key Catalysts
@@ -2355,14 +2357,14 @@ def generate_markdown_report(data: dict, report_path: str, lang: str = "en"):
 ### 1. 核心指标速览
 | 核心指标 | 当前数值 | 机构对标与安全边际 |
 | :--- | :--- | :--- |
-| **最新现价** | **{curr_sym}{tech['close']}** ({tech['change_pct']:+.2f}%) | 距52周最高点: {tech['drawdown_from_52w_high']:.1f}% \\| 距52周最低点: +{tech['rebound_from_52w_low']:.1f}% |
+| **最新现价** | **{curr_sym}{tech['close']}** ({tech['change_pct']:+.2f}%) | 距过去一年最高点: {tech['drawdown_from_52w_high']:.1f}% \\| 距过去一年最低点: +{tech['rebound_from_52w_low']:.1f}% |
 | **技术面研判** | **{conf['technical_verdict']}** ({conf['technical_score']}) | 均线、动能、量能全维量化评分 |
 | **基本面研判** | **{conf['fundamental_verdict']}** ({conf['fundamental_score']}) | 盈利质量、护城河与负债健康度评估 |
 | **机构共振评级** | **{conf['confluence_verdict']}** | 多维共振定位体系 |
 | **市盈率与历史分位** | **{pe_val_str}** (10年分位: {pe_pct_10y_str}) | {pe_zone_str} |
 | **资本回报与股东分红** | ROE: **{roe_str}** \\| 股息率: **{div_yield_str}** | 营业利润率: {op_m_str} \\| 营收增速: {rev_g_str} |
 | **关键支撑 / 阻力** | 最近支撑位: **{curr_sym}{tech['nearest_support']}** | 最近阻力位: **{curr_sym}{tech['nearest_resistance']}** |
-| **52周价格区间** | 最低: {curr_sym}{tech['52_week_low']} | 最高: {curr_sym}{tech['52_week_high']} |
+| **过去一年价格区间** | 最低: {curr_sym}{tech['52_week_low']} | 最高: {curr_sym}{tech['52_week_high']} |
 
 ### 2. 核心投资逻辑阐述
 
@@ -2378,7 +2380,7 @@ def generate_markdown_report(data: dict, report_path: str, lang: str = "en"):
 | **建议逢低布局区间** | **{trade['entry_zone']}** | 关键支撑位上方或均线回调吸收密集区 |
 | **防守止损线** | **{trade['stop_loss']}** | 结构失效点：有效跌破立即离场，严控下行风险 |
 | **第一目标位** | **{trade['target_1']}** | 最近强阻力区：建议逢高锁定利润 |
-| **第二目标位** | **{trade['target_2']}** | 趋势延伸目标位 / 52周新高突破目标 |
+| **第二目标位** | **{trade['target_2']}** | 趋势延伸目标位 / 过去一年新高突破目标 |
 | **战术盈亏比** | **{trade['rr_ratio']}** | 基于第一目标位计算的风险回报比 |
 | **持仓周期预期** | **{trade['time_horizon']}** | 适合中线波段与机构建仓周期 |
 
@@ -3151,7 +3153,7 @@ def generate_html_report(data: dict, html_path: str, chart_path: str, lang: str 
                 <div class="kpi-title">{'最新价格 & 涨跌' if is_zh else 'Last Price & Change'}</div>
                 <div class="kpi-value">{curr_sym}{tech['close']}</div>
                 <div class="kpi-sub">{'日涨跌' if is_zh else 'Daily'}: <strong>{tech['change_pct']:+.2f}%</strong></div>
-                <div class="kpi-sub">{'52周高位回撤' if is_zh else '52W Drawdown'}: {tech['drawdown_from_52w_high']:.1f}%</div>
+                <div class="kpi-sub">{'过去一年高位回撤' if is_zh else '52W Drawdown'}: {tech['drawdown_from_52w_high']:.1f}%</div>
             </td>
             <td class="kpi-card">
                 <div class="kpi-title">{'估值与历史分位' if is_zh else 'Valuation & Historical Percentile'}</div>
@@ -3218,7 +3220,7 @@ def generate_html_report(data: dict, html_path: str, chart_path: str, lang: str 
             <tr>
                 <td><strong>{'第二目标位' if is_zh else 'Target 2 (Runner)'}</strong></td>
                 <td><strong>{trade['target_2']}</strong></td>
-                <td>{'趋势延续或52周高点突破目标' if is_zh else 'Extended trend runner / 52W high breakout'}</td>
+                <td>{'趋势延续或过去一年高点突破目标' if is_zh else 'Extended trend runner / 52W high breakout'}</td>
             </tr>
             <tr>
                 <td><strong>{'战术盈亏比' if is_zh else 'Risk-to-Reward Ratio'}</strong></td>
@@ -3296,7 +3298,7 @@ def generate_html_report(data: dict, html_path: str, chart_path: str, lang: str 
 """
 
         if pe_chart_b64:
-            chart_title = 'PE TTM 历史估值走势与分位数带宽' if is_zh else '10-Year Historical PE (TTM) & Valuation Percentile Bands'
+            chart_title = 'PE (TTM) 历史估值走势与分位数带宽' if is_zh else '10-Year Historical PE (TTM) & Valuation Percentile Bands'
             html += f"""
     <!-- PE Valuation Bands Section -->
     <div class="pe-chart-section" style="margin-top: 22px;">
@@ -4256,6 +4258,8 @@ def main():
         "free_cash_flow": fcf,
         "fcf_yield": fcf_yield,
         "operating_cash_flow": info.get("operatingCashflow"),
+        "total_revenue_ttm": info.get("totalRevenue"),
+        "net_income_ttm": info.get("netIncomeToCommon"),
         "revenue_growth": info.get("revenueGrowth"),
         "earnings_growth": info.get("earningsGrowth"),
         "historical_performance": hist_perf,

@@ -466,7 +466,19 @@ def build_key_tech_observation(item: dict, is_zh: bool = True) -> str:
         return f"均线呈空头压制（20日线 `{sma20_txt}` / 50日线 `{sma50_txt}`），观察下方 `{supp_txt}` 支撑承接与放量企稳信号"
 
 
-def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, is_zh: bool = True) -> dict:
+def should_align_ttm(items: list) -> bool:
+    """Return True when compared stocks have heterogeneous latest fiscal years and TTM data is available."""
+    fy_set = set()
+    for it in items:
+        hp = it.get("fundamentals", {}).get("historical_performance", [])
+        if hp and hp[-1].get("year"):
+            fy_set.add(str(hp[-1]["year"]))
+    if len(fy_set) <= 1:
+        return False
+    return all(it.get("fundamentals", {}).get("total_revenue_ttm") is not None for it in items)
+
+
+def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, is_zh: bool = True, align_ttm: bool = False) -> dict:
     meta = item.get("metadata", {})
     curr = meta.get("currency", "USD")
     c = get_curr_sym(curr)
@@ -477,7 +489,7 @@ def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, i
     trade = item.get("trade_setup", {})
     hist = fund.get("historical_performance", [])
     lat = hist[-1] if hist else {}
-    lat_year = lat.get("year", "最新")
+    lat_year = "TTM" if align_ttm else lat.get("year", "最新")
 
     close = tech.get("close", 0)
     sma20 = tech.get("sma_20")
@@ -486,13 +498,22 @@ def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, i
     macd_h = tech.get("macd_hist", 0)
     rr = trade.get("rr_ratio", "N/A")
 
-    rev = lat.get("revenue")
-    ni = lat.get("net_income")
-    rev_yoy = lat.get("revenue_yoy")
-    ni_yoy = lat.get("net_income_yoy")
-    gm = lat.get("gross_margin") if lat.get("gross_margin") is not None else ((fund.get("gross_margins") or 0) * 100.0)
-    gm_chg = lat.get("gross_margin_change")
-    ocf_raw = lat.get("ocf") if lat.get("ocf") is not None else fund.get("operating_cash_flow")
+    if align_ttm:
+        rev = fund.get("total_revenue_ttm")
+        ni = fund.get("net_income_ttm")
+        rev_yoy = (fund.get("revenue_growth") * 100.0) if fund.get("revenue_growth") is not None else lat.get("revenue_yoy")
+        ni_yoy = (fund.get("earnings_growth") * 100.0) if fund.get("earnings_growth") is not None else lat.get("net_income_yoy")
+        gm = (fund.get("gross_margins") * 100.0) if fund.get("gross_margins") is not None else lat.get("gross_margin")
+        gm_chg = lat.get("gross_margin_change")
+        ocf_raw = fund.get("operating_cash_flow") if fund.get("operating_cash_flow") is not None else lat.get("ocf")
+    else:
+        rev = lat.get("revenue")
+        ni = lat.get("net_income")
+        rev_yoy = lat.get("revenue_yoy")
+        ni_yoy = lat.get("net_income_yoy")
+        gm = lat.get("gross_margin") if lat.get("gross_margin") is not None else ((fund.get("gross_margins") or 0) * 100.0)
+        gm_chg = lat.get("gross_margin_change")
+        ocf_raw = lat.get("ocf") if lat.get("ocf") is not None else fund.get("operating_cash_flow")
     ocf_str = fmt_large_amt(ocf_raw, curr, is_zh=is_zh)
 
     pe = fund.get("trailing_pe")
@@ -567,7 +588,7 @@ def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, i
         else:
             fin_part = f"基本面经营韧性突出，最新年度毛利率保持在 `{gm_str}`，经营现金流 {ocf_str}；"
 
-        val_part = f"PE 报 `{pe_str}`（近3年/5年分位分别为 `{p3_str}` / `{p5_str}`，10年分位 `{p10_str}`）"
+        val_part = f"PE (TTM) 报 `{pe_str}`（近3年/5年分位分别为 `{p3_str}` / `{p5_str}`，10年分位 `{p10_str}`）"
         if fcf_y and fcf_y > 0:
             val_part += f"，自由现金流收益率达 `{fcf_y:.2f}%`。"
         else:
@@ -595,8 +616,8 @@ def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, i
             rsi_txt = f"14日 RSI 已回落至 `{rsi:.1f}` 深度超跌区间" if rsi < 30 else f"14日 RSI 报 `{rsi:.1f}`"
             desc = (
                 f"{lat_year} 财年实现营收 {fmt_large_amt(rev, curr)}（同比 `{rev_yoy:+.1f}%`）与归母净利 {fmt_large_amt(ni, curr)}（同比 `{ni_yoy:+.1f}%`）爆发式增长，"
-                f"毛利率高达 `{gm_str}`、ROE 达 `{roe_pct:.1f}%` 且{net_cash_txt}。当前静态 PE 报 `{pe_str}`（历史分位 `{p10_str}`{fpe_txt}）；"
-                f"受短期技术面回撤影响（较52周高点回撤 `{tech.get('drawdown_from_52w_high', 0):.1f}%`，{rsi_txt}），"
+                f"毛利率高达 `{gm_str}`、ROE 达 `{roe_pct:.1f}%` 且{net_cash_txt}。当前 PE (TTM) 报 `{pe_str}`（历史分位 `{p10_str}`{fpe_txt}）；"
+                f"受短期技术面回撤影响（较过去一年高点回撤 `{tech.get('drawdown_from_52w_high', 0):.1f}%`，{rsi_txt}），"
                 f"战术盈亏比 `{rr}`，建议紧盯 `{trade.get('entry_zone')}` 核心支撑带逢低分批关注（止损 `{trade.get('stop_loss')}`，目标 `{trade.get('target_1')}`）。"
             )
         else:
@@ -607,7 +628,7 @@ def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, i
             rev_q_txt = f"，最新单季营收已同比回升 `{rev_q_growth:+.1f}%`" if rev_q_growth > 0 else ""
             desc = (
                 f"资产负债表极度稳健（**{debt_txt} + 约 {cash_str} 账面现金 + `{div_y:.2f}%` 股息率**），"
-                f"在行业磨底期提供了坚实的下行安全垫。当前 `{pe_str}` PE（10年分位 `{p10_str}`）系周期底部盈利基数压缩所致{rev_q_txt}；"
+                f"在行业磨底期提供了坚实的下行安全垫。当前 `{pe_str}` PE (TTM)（10年分位 `{p10_str}`）系周期底部盈利基数压缩所致{rev_q_txt}；"
                 f"近期股价报 `{c}{close}`，战术盈亏比 `{rr}`，适合作为高股息防御及行业周期复苏的左侧/波段配置标的（关注 `{trade.get('entry_zone')}` 承接，止损 `{trade.get('stop_loss')}`）。"
             )
     else:
@@ -624,13 +645,13 @@ def build_priority_recommendation(item: dict, rank_idx: int, total_count: int, i
             desc = (
                 f"具备全球不可替代的稀缺轨道发射与通信星座垄断壁垒，{rev_part}，"
                 f"但高强度研发与星舰/星链资本开支导致 {lat_year} 年净利润录得 `{fmt_large_amt(ni, curr)}`（净利率 `{nm_str}`），"
-                f"静态 PE 高企至 `{pe_str}`（{fpe_part.lstrip('、')}{ps_part}）。技术面上受制于 `{c}{lo_ma:.2f} - {c}{hi_ma:.2f}`（20/50日均线压制区），"
+                f"PE (TTM) 高企至 `{pe_str}`（{fpe_part.lstrip('、')}{ps_part}）。技术面上受制于 `{c}{lo_ma:.2f} - {c}{hi_ma:.2f}`（20/50日均线压制区），"
                 f"当前不宜追高，建议耐心等待股价在 `{trade.get('entry_zone')}` 支撑带企稳或放量站上 `{c}{hi_ma:.2f}` 后再行右侧追踪。"
             )
         else:
             desc = (
                 f"具备不可替代的行业战略准入与专营垄断壁垒，但短期受毛利率（`{gm_str}`）与净利率（`{nm_str}`）承压影响，"
-                f"静态 PE 高达 `{pe_str}`（10年分位 `{p10_str}`）。技术面上受制于 `{c}{lo_ma:.2f} - {c}{hi_ma:.2f}`（50/20日均线粘合区）反压，"
+                f"PE (TTM) 高达 `{pe_str}`（10年分位 `{p10_str}`）。技术面上受制于 `{c}{lo_ma:.2f} - {c}{hi_ma:.2f}`（50/20日均线粘合区）反压，"
                 f"战术盈亏比 `{rr}` 偏低，建议耐心等待股价在 `{trade.get('entry_zone')}` 支撑带企稳或放量站上 `{c}{hi_ma:.2f}` 后再行右侧介入。"
             )
 
@@ -648,13 +669,14 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
     """Build the 11 rows of Section 1 (Quantitative & Fundamental Comparison Matrix)."""
     rows = []
 
+    align_ttm = should_align_ttm(items)
     # Check if stocks have heterogeneous latest fiscal years (e.g., 2025 vs 2026)
     fy_set = set()
     for it in items:
         hp = it["fundamentals"].get("historical_performance", [])
         if hp and hp[-1].get("year"):
             fy_set.add(str(hp[-1]["year"]))
-    show_fy_tag = len(fy_set) > 1
+    show_fy_tag = (len(fy_set) > 1) and not align_ttm
 
     # Row 1: 核心赛道与壁垒
     r1 = []
@@ -663,16 +685,16 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
         r1.append((f"**{track}**", f"*{moat}*"))
     rows.append(("**核心赛道与壁垒**" if is_zh else "**Core Track & Moat**", r1))
 
-    # Row 2: 最新现价 / 52周回撤
+    # Row 2: 最新现价 / 过去一年回撤
     r2 = []
     for it in items:
         c = get_curr_sym(it)
         t = it["technicals"]
         if is_zh:
-            r2.append((f"**{c}{t['close']:.2f}**（当日 `{t['change_pct']:+.2f}%`）", f"*距52周高点 `{t['drawdown_from_52w_high']:.1f}%`*"))
+            r2.append((f"**{c}{t['close']:.2f}**（当日 `{t['change_pct']:+.2f}%`）", f"*距过去一年高点 `{t['drawdown_from_52w_high']:.1f}%`*"))
         else:
             r2.append((f"**{c}{t['close']:.2f}** (`{t['change_pct']:+.2f}%`)", f"*From 52W High: `{t['drawdown_from_52w_high']:.1f}%`*"))
-    rows.append(("**最新现价 / 52周回撤**" if is_zh else "**Price / 52W Drawdown**", r2))
+    rows.append(("**最新现价 / 过去一年回撤**" if is_zh else "**Price / 52W Drawdown**", r2))
 
     # Row 3: 技术面 / 基本面评分
     r3 = []
@@ -738,12 +760,26 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
         r6 = [(f"**{it['fundamentals']['price_to_book']:.2f}x**",) if it["fundamentals"].get("price_to_book") else ("N/A",) for it in items]
         rows.append(("**Price / Book (P/B)**", r6))
 
-    # Row 7: 最新年度营收及增速
+    # Row 7: 最新年度 / TTM 营收及增速
     r7 = []
     for it in items:
         curr = it["metadata"].get("currency", "CNY")
-        hp = it["fundamentals"].get("historical_performance", [])
-        if len(hp) >= 3:
+        f = it["fundamentals"]
+        hp = f.get("historical_performance", [])
+        if align_ttm:
+            r_ttm = f.get("total_revenue_ttm")
+            amt_s = fmt_large_amt(r_ttm, curr, is_zh=is_zh)
+            yoy = (f.get("revenue_growth") * 100.0) if f.get("revenue_growth") is not None else (hp[-1].get("revenue_yoy") if hp else None)
+            r_23 = hp[0].get("revenue") or 0 if len(hp) >= 3 else 0
+            r_lat = hp[-1].get("revenue") if len(hp) >= 3 else None
+            cagr_txt = ""
+            if r_23 > 0 and r_lat and r_lat > 0:
+                cagr = ((r_lat / r_23) ** 0.5 - 1.0) * 100.0
+                cagr_txt = f" ｜ 2Y复合 `{cagr:+.1f}%`" if is_zh else f" | 2Y CAGR `{cagr:+.1f}%`"
+            yoy_txt = (f"同比 `{yoy:+.1f}%`" if is_zh else f"YoY `{yoy:+.1f}%`") if yoy is not None else ""
+            sub = f"*{yoy_txt}{cagr_txt.lstrip(' ｜') if not yoy_txt else cagr_txt}*" if (yoy_txt or cagr_txt) else "*TTM*"
+            r7.append((f"**{amt_s}** (TTM)", sub))
+        elif len(hp) >= 3:
             r_23 = hp[0].get("revenue") or 0
             r_lat = hp[-1].get("revenue")
             yr = str(hp[-1].get("year", ""))
@@ -764,14 +800,32 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
             r7.append((f"**{amt_s}**{fy_tag}", f"*{'同比' if is_zh else 'YoY'} `{yoy:+.1f}%`*"))
         else:
             r7.append(("暂无" if is_zh else "N/A",))
-    rows.append(("**最新年度营收及增速**" if is_zh else "**Latest Annual Revenue & Growth**", r7))
+    if align_ttm:
+        rows.append(("**近12个月营收及增速 (TTM)**" if is_zh else "**Revenue & Growth (TTM)**", r7))
+    else:
+        rows.append(("**最新年度营收及增速**" if is_zh else "**Latest Annual Revenue & Growth**", r7))
 
-    # Row 8: 最新年度归母净利及增速
+    # Row 8: 最新年度 / TTM 归母净利及增速
     r8 = []
     for it in items:
         curr = it["metadata"].get("currency", "CNY")
-        hp = it["fundamentals"].get("historical_performance", [])
-        if hp and hp[-1].get("net_income") is not None:
+        f = it["fundamentals"]
+        hp = f.get("historical_performance", [])
+        if align_ttm:
+            ni_ttm = f.get("net_income_ttm")
+            if ni_ttm is not None:
+                yoy = (f.get("earnings_growth") * 100.0) if f.get("earnings_growth") is not None else None
+                amt_s = fmt_large_amt(ni_ttm, curr, is_zh=is_zh)
+                if ni_ttm < 0 and (yoy is None or abs(yoy) > 500):
+                    note = "高强度研发与资本开支致亏损" if is_zh else "Heavy R&D & CapEx investment"
+                    r8.append((f"**{amt_s}** (TTM)（{note}）" if is_zh else f"**{amt_s}** (TTM) ({note})",))
+                elif yoy is not None:
+                    r8.append((f"**{amt_s}** (TTM)（同比 `{yoy:+.1f}%`）" if is_zh else f"**{amt_s}** (TTM) (`{yoy:+.1f}%` YoY)",))
+                else:
+                    r8.append((f"**{amt_s}** (TTM)",))
+            else:
+                r8.append(("暂无" if is_zh else "N/A",))
+        elif hp and hp[-1].get("net_income") is not None:
             ni_lat = hp[-1].get("net_income")
             yr = str(hp[-1].get("year", ""))
             fy_tag = f" (FY{yr[-2:]})" if (show_fy_tag and len(yr) >= 2) else ""
@@ -786,14 +840,20 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
                 r8.append((f"**{amt_s}**{fy_tag}",))
         else:
             r8.append(("暂无" if is_zh else "N/A",))
-    rows.append(("**最新年度归母净利及增速**" if is_zh else "**Latest Net Income & Growth**", r8))
+    if align_ttm:
+        rows.append(("**近12个月归母净利及增速 (TTM)**" if is_zh else "**Net Income & Growth (TTM)**", r8))
+    else:
+        rows.append(("**最新年度归母净利及增速**" if is_zh else "**Latest Net Income & Growth**", r8))
 
     # Row 9: 毛利率 / 净资产收益率 ROE
     r9 = []
     for it in items:
         f = it["fundamentals"]
         hp = f.get("historical_performance", [])
-        gm = hp[-1].get("gross_margin") if (hp and hp[-1].get("gross_margin") is not None) else ((f.get("gross_margins") or 0) * 100)
+        if align_ttm and f.get("gross_margins") is not None:
+            gm = f["gross_margins"] * 100.0
+        else:
+            gm = hp[-1].get("gross_margin") if (hp and hp[-1].get("gross_margin") is not None) else ((f.get("gross_margins") or 0) * 100)
         gm_c = hp[-1].get("gross_margin_change") if hp else None
         roe = (f.get("return_on_equity") * 100.0) if f.get("return_on_equity") is not None else (hp[-1].get("roe") if (hp and hp[-1].get("roe") is not None) else None)
         roe_str = f"{roe:.1f}%" if roe is not None else ("暂无" if is_zh else "N/A")
@@ -802,7 +862,10 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
             r9.append((f"毛利率 **{gm:.1f}%**（{gm_c_txt}） ｜ ROE **{roe_str}**",))
         else:
             r9.append((f"Gross Margin **{gm:.1f}%** ({gm_c_txt}) | ROE **{roe_str}**",))
-    rows.append(("**毛利率 / 净资产收益率 ROE**" if is_zh else "**Gross Margin / ROE**", r9))
+    if align_ttm:
+        rows.append(("**毛利率 / 净资产收益率 ROE (TTM)**" if is_zh else "**Gross Margin / ROE (TTM)**", r9))
+    else:
+        rows.append(("**毛利率 / 净资产收益率 ROE**" if is_zh else "**Gross Margin / ROE**", r9))
 
     # Row 10: 经营现金流 OCF / 负债结构
     r10 = []
@@ -810,7 +873,10 @@ def format_stock_row_cells(items: list, is_zh: bool = True) -> list:
         curr = it["metadata"].get("currency", "CNY")
         f = it["fundamentals"]
         hp = f.get("historical_performance", [])
-        ocf_raw = hp[-1].get("ocf") if (hp and hp[-1].get("ocf") is not None) else f.get("operating_cash_flow")
+        if align_ttm and f.get("operating_cash_flow") is not None:
+            ocf_raw = f.get("operating_cash_flow")
+        else:
+            ocf_raw = hp[-1].get("ocf") if (hp and hp[-1].get("ocf") is not None) else f.get("operating_cash_flow")
         ocf_val = ocf_raw or 0
         ocf_str = fmt_large_amt(ocf_raw, curr, is_zh=is_zh)
         fcf_y = f.get("fcf_yield")
@@ -1054,7 +1120,7 @@ def generate_comparison_html(items: list, recs: list, rows: list, output_html_pa
                 <div class="kpi-value">{m['company_name']} <span class="ticker-tag">{m['ticker']}</span></div>
                 <div class="kpi-line">现价: <strong style="color:{chg_color};">{c_sym}{t['close']:.2f} ({t['change_pct']:+.2f}%)</strong> ｜ 盈亏比: <strong>{tr['rr_ratio']}</strong></div>
                 <div class="kpi-line">评分: 技术面 <strong>{c['technical_score']}</strong> ｜ 基本面 <strong>{c['fundamental_score']}</strong></div>
-                <div class="kpi-line">估值: PE <strong>{pe_val}</strong> (10年分位 {pe_10y} · {f.get('valuation_zone_zh', '')})</div>
+                <div class="kpi-line">估值: PE (TTM) <strong>{pe_val}</strong> (10年分位 {pe_10y} · {f.get('valuation_zone_zh', '')})</div>
             </td>
         """)
         else:
@@ -1205,10 +1271,17 @@ def generate_comparison_html(items: list, recs: list, rows: list, output_html_pa
             margin-bottom: 16px;
         }}
         .header-banner h1 {{
-            margin: 0 0 6px 0;
+            margin: 0 0 4px 0;
             font-size: 23px;
             font-weight: 800;
             color: #ffffff;
+        }}
+        .header-stocks {{
+            font-size: 17px;
+            font-weight: 700;
+            color: #e2e8f0;
+            margin-bottom: 6px;
+            line-height: 1.35;
         }}
         .header-banner .meta-row {{
             font-size: 13px;
@@ -1336,7 +1409,8 @@ def generate_comparison_html(items: list, recs: list, rows: list, output_html_pa
 <body>
 <div class="report-container">
     <div class="header-banner">
-        <h1>{'投资对比研判报告：' if is_zh else 'Investment Comparison Report: '}{names_str}</h1>
+        <h1>{'投资对比研判报告' if is_zh else 'Investment Comparison Report'}</h1>
+        <div class="header-stocks">{names_str}</div>
         <div class="meta-row">
             {f'对比标的: {tickers_str} &nbsp;|&nbsp; 投研日期: {analysis_date} &nbsp;|&nbsp; 时间级别: 日线级别 &nbsp;|&nbsp; 数据周期: 近1年 &nbsp;|&nbsp; 结算货币: {curr_label}' if is_zh else f'Tickers: {tickers_str} &nbsp;|&nbsp; Date: {analysis_date} &nbsp;|&nbsp; Timeframe: Daily &nbsp;|&nbsp; Period: 1Y &nbsp;|&nbsp; Currency: {curr_label}'}
         </div>
@@ -1398,28 +1472,211 @@ def generate_comparison_html(items: list, recs: list, rows: list, output_html_pa
     return html
 
 
-def generate_comparison_pdf(html_content: str, output_pdf_path: str) -> bool:
+def _build_font_css() -> str:
+    """Build @font-face CSS declarations for YaHei and SegoeUI."""
+    font_defs = []
+    if os.path.exists(YAHEI_REGULAR):
+        font_defs.append("""
+        @font-face {
+            font-family: 'YaHei';
+            src: url('msyh.ttc');
+            font-weight: normal;
+            font-style: normal;
+        }
+        """)
+    if os.path.exists(YAHEI_BOLD):
+        font_defs.append("""
+        @font-face {
+            font-family: 'YaHei';
+            src: url('msyhbd.ttc');
+            font-weight: bold;
+            font-style: normal;
+        }
+        """)
+    if os.path.exists(SEGOE_REGULAR):
+        font_defs.append("""
+        @font-face {
+            font-family: 'SegoeUI';
+            src: url('segoeui.ttf');
+            font-weight: normal;
+            font-style: normal;
+        }
+        """)
+    if os.path.exists(SEGOE_BOLD):
+        font_defs.append("""
+        @font-face {
+            font-family: 'SegoeUI';
+            src: url('segoeuib.ttf');
+            font-weight: bold;
+            font-style: normal;
+        }
+        """)
+    return "\n".join(font_defs)
+
+
+def generate_comparison_pdf(items: list, recs: list, rows: list, output_pdf_path: str, is_zh: bool = True) -> bool:
     if not HAS_PISA:
         return False
     register_cjk_fonts()
 
-    # Extract @font-face declarations before swapping CSS
-    font_faces = re.findall(r"@font-face\s*\{[^}]*\}", html_content)
-    font_face_str = "\n".join(font_faces)
+    names_str = ("、" if is_zh else ", ").join([it["metadata"]["company_name"] for it in items])
+    tickers_str = " / ".join([it["metadata"]["ticker"] for it in items])
+    analysis_date = items[0]["metadata"].get("analysis_date", datetime.now().strftime("%Y-%m-%d"))
+    curr_label = get_currency_label_zh(items, is_zh=is_zh)
+    badge_colors = ["#16a34a", "#2563eb", "#d97706", "#64748b"]
 
-    # Adapt HTML for A4 Portrait PDF with strict box wrapping
-    pdf_html = re.sub(r"<title>.*?</title>", "<title>Multi-Stock Comparison Report</title>", html_content)
+    # 1. Top Priority KPI Cards (Vertically Stacked for Mobile 112mm x 220mm)
+    kpi_cards_html = []
+    for idx, it in enumerate(items):
+        m = it["metadata"]
+        t = it["technicals"]
+        f = it["fundamentals"]
+        tr = it["trade_setup"]
+        c = it["confluence"]
+        c_sym = get_curr_sym(it)
+        loc_sector = localize_sector(m.get("sector", ""), m.get("ticker", ""), is_zh=is_zh)
+        color = badge_colors[min(idx, len(badge_colors) - 1)]
+        chg_color = "#16a34a" if t["change_pct"] >= 0 else "#dc2626"
+        if is_zh:
+            role_prefix = recs[idx]["role_title"].split("（")[0] if idx < len(recs) else f"关注 · NO.{idx+1}"
+            rank_label = f"{role_prefix} · NO.{idx+1}"
+            pe_val = f"{f['trailing_pe']:.1f}倍" if f.get("trailing_pe") else "暂无"
+            pe_10y = f"{f['pe_10y_percentile']:.1f}%" if f.get("pe_10y_percentile") is not None else "暂无"
+            kpi_cards_html.append(f"""
+            <table class="kpi-card-table">
+                <tr>
+                    <td class="kpi-card" style="border-left: 4px solid {color};">
+                        <div class="kpi-title" style="color:{color};">{rank_label} ｜ {loc_sector}</div>
+                        <div class="kpi-value">{m['company_name']} <span class="ticker-tag">{m['ticker']}</span></div>
+                        <div class="kpi-line">现价: <strong style="color:{chg_color};">{c_sym}{t['close']:.2f} ({t['change_pct']:+.2f}%)</strong> ｜ 盈亏比: <strong>{tr['rr_ratio']}</strong></div>
+                        <div class="kpi-line">评分: 技术面 <strong>{c['technical_score']}</strong> ｜ 基本面 <strong>{c['fundamental_score']}</strong></div>
+                        <div class="kpi-line">估值: PE (TTM) <strong>{pe_val}</strong> (10年分位 {pe_10y} · {f.get('valuation_zone_zh', '')})</div>
+                    </td>
+                </tr>
+            </table>
+            """)
+        else:
+            role_prefix = recs[idx]["role_title"].split(" (")[0] if idx < len(recs) else f"Rank #{idx+1}"
+            rank_label = f"{role_prefix} · #{idx+1}"
+            pe_val = f"{f['trailing_pe']:.1f}x" if f.get("trailing_pe") else "N/A"
+            pe_10y = f"{f['pe_10y_percentile']:.1f}%" if f.get("pe_10y_percentile") is not None else "N/A"
+            kpi_cards_html.append(f"""
+            <table class="kpi-card-table">
+                <tr>
+                    <td class="kpi-card" style="border-left: 4px solid {color};">
+                        <div class="kpi-title" style="color:{color};">{rank_label} | {loc_sector}</div>
+                        <div class="kpi-value">{m['company_name']} <span class="ticker-tag">{m['ticker']}</span></div>
+                        <div class="kpi-line">Price: <strong style="color:{chg_color};">{c_sym}{t['close']:.2f} ({t['change_pct']:+.2f}%)</strong> | R:R: <strong>{tr['rr_ratio']}</strong></div>
+                        <div class="kpi-line">Score: Tech <strong>{c['technical_score']}</strong> | Fund <strong>{c['fundamental_score']}</strong></div>
+                        <div class="kpi-line">Valuation: P/E <strong>{pe_val}</strong> (10Y Pct {pe_10y} · {f.get('valuation_zone_en', '')})</div>
+                    </td>
+                </tr>
+            </table>
+            """)
+    kpi_stack_html = "\n".join(kpi_cards_html)
 
-    # Unwrap .report-container and add page break before Section 3 so Page 1 holds KPI + Section 1 + Section 2
-    pdf_html = pdf_html.replace('<div class="report-container">', '')
-    pdf_html = pdf_html.replace('</div>\n</body>', '</body>')
+    # 2. Section 1: Dimension-Grouped Vertical Comparison Blocks
+    dim_blocks_html = []
+    for label, cells in rows:
+        stock_rows = []
+        for idx, it in enumerate(items):
+            nm = it["metadata"]["company_name"]
+            color = badge_colors[min(idx, len(badge_colors) - 1)]
+            c_val = cells[idx] if idx < len(cells) else ""
+            if isinstance(c_val, tuple):
+                inner_divs = "".join([f"<div class='cell-line'>{md_inline_to_html(line)}</div>" for line in c_val])
+            else:
+                inner_divs = f"<div class='cell-line'>{md_inline_to_html(c_val)}</div>"
+            stock_rows.append(
+                f"<tr>"
+                f"<td class='dim-stock' style='width:25%; border-left: 3px solid {color};'>{nm}</td>"
+                f"<td class='dim-val' style='width:75%;'>{inner_divs}</td>"
+                f"</tr>"
+            )
+        dim_blocks_html.append(f"""
+        <table class="dim-table">
+            <tr><th colspan="2" class="dim-hdr">{md_inline_to_html(label)}</th></tr>
+            {"".join(stock_rows)}
+        </table>
+        """)
+    section1_html = "\n".join(dim_blocks_html)
 
-    is_zh_doc = ('lang="zh' in html_content) or bool(re.search(r'[\u4e00-\u9fff]', html_content))
-    cjk_wrap_rule = "-pdf-word-wrap: CJK;\n        " if is_zh_doc else ""
+    # 3. Section 2: Vertical Tactical Trade Cards
+    trade_cards_html = []
+    for idx, it in enumerate(items):
+        m = it["metadata"]
+        nm = m["company_name"]
+        tk = m["ticker"]
+        tr = it["trade_setup"]
+        loc_bias = localize_bias(tr["bias"], is_zh=is_zh)
+        obs = md_inline_to_html(build_key_tech_observation(it, is_zh=is_zh))
+        bias_color = "#16a34a" if tr["bias_type"] == "bullish" else ("#d97706" if tr["bias_type"] == "neutral" else "#dc2626")
+        lbl_entry = "建议逢低关注区间" if is_zh else "Accumulation Zone"
+        lbl_stop = "防守止损线" if is_zh else "Stop Loss"
+        lbl_tgt = "第一 / 第二目标位" if is_zh else "Target 1 / Target 2"
+        lbl_rr = "战术盈亏比" if is_zh else "R:R Ratio"
+        lbl_obs = "关键技术观察点：" if is_zh else "Key Technical Watch: "
+        trade_cards_html.append(f"""
+        <table class="trade-card-table">
+            <tr>
+                <th colspan="2" class="tc-hdr">
+                    <strong>{nm}</strong> <span class="ticker-tag">{tk}</span> &nbsp;｜&nbsp; <strong style="color:{bias_color};">{loc_bias}</strong>
+                </th>
+            </tr>
+            <tr>
+                <td class="tc-cell" style="width:50%;">
+                    <div class="tc-label">{lbl_entry}</div>
+                    <div class="tc-val">{tr['entry_zone']}</div>
+                </td>
+                <td class="tc-cell" style="width:50%;">
+                    <div class="tc-label">{lbl_stop}</div>
+                    <div class="tc-val" style="color:#dc2626;">{tr['stop_loss']}</div>
+                </td>
+            </tr>
+            <tr>
+                <td class="tc-cell" style="width:50%;">
+                    <div class="tc-label">{lbl_tgt}</div>
+                    <div class="tc-val" style="color:#16a34a;">{tr['target_1']} / {tr['target_2']}</div>
+                </td>
+                <td class="tc-cell" style="width:50%;">
+                    <div class="tc-label">{lbl_rr}</div>
+                    <div class="tc-val">{tr['rr_ratio']}</div>
+                </td>
+            </tr>
+            <tr>
+                <td colspan="2" class="tc-obs-cell">
+                    <div class="tc-obs"><strong>{lbl_obs}</strong>{obs}</div>
+                </td>
+            </tr>
+        </table>
+        """)
+    section2_html = "\n".join(trade_cards_html)
+
+    # 4. Section 3: Full-Width Priority Recommendation Cards
+    rec_cards_html = []
+    for idx, r in enumerate(recs):
+        border_col = badge_colors[min(idx, len(badge_colors) - 1)]
+        bg_col = "#f0fdf4" if idx == 0 else ("#eff6ff" if idx == 1 else "#fffbeb")
+        rec_cards_html.append(f"""
+        <table class="thesis-table">
+            <tr>
+                <td class="thesis-cell" style="border-left: 4px solid {border_col}; background-color: {bg_col};">
+                    <div class="thesis-header">{r['rank']}. {r['role_title']}</div>
+                    <div class="thesis-body">
+                        <strong>{r['bullet_label']}{'：' if is_zh else ': '}</strong>{md_inline_to_html(r['description'])}
+                    </div>
+                </td>
+            </tr>
+        </table>
+        """)
+    section3_html = "\n".join(rec_cards_html)
+
+    cjk_wrap_rule = "-pdf-word-wrap: CJK;\n        " if is_zh else ""
+    font_face_str = _build_font_css()
     pdf_css = """
     @page {
-        size: A4 portrait;
-        margin: 10mm 10mm 10mm 10mm;
+        size: 112mm 220mm;
+        margin: 4mm 5mm 4mm 5mm;
     }
     * {
         __CJK_WRAP__word-wrap: break-word;
@@ -1429,8 +1686,8 @@ def generate_comparison_pdf(html_content: str, output_pdf_path: str) -> bool:
         __CJK_WRAP__word-wrap: break-word;
     }
     body {
-        font-size: 9.5pt;
-        line-height: 1.4;
+        font-size: 9.2pt;
+        line-height: 1.42;
         background-color: #ffffff;
         color: #0f172a;
         margin: 0;
@@ -1439,115 +1696,186 @@ def generate_comparison_pdf(html_content: str, output_pdf_path: str) -> bool:
     .header-banner {
         background-color: #0f172a;
         color: #ffffff;
-        padding: 10px 14px;
-        margin-bottom: 8px;
+        padding: 8px 10px;
+        margin-bottom: 7px;
     }
     .header-banner h1 {
-        margin: 0 0 3px 0;
-        font-size: 14.5pt;
+        margin: 0 0 2px 0;
+        font-size: 12.5pt;
+        font-weight: bold;
         color: #ffffff;
+        line-height: 1.28;
+    }
+    .header-stocks {
+        font-size: 10.8pt;
+        font-weight: bold;
+        color: #e2e8f0;
+        margin-bottom: 4px;
+        line-height: 1.32;
     }
     .header-banner .meta-row {
-        font-size: 8.5pt;
+        font-size: 7.8pt;
         color: #cbd5e1;
+        line-height: 1.38;
     }
-    .kpi-table {
+    .kpi-card-table {
         width: 100%;
-        margin-bottom: 10px;
+        border-collapse: collapse;
+        margin-bottom: 6px;
+        page-break-inside: avoid;
     }
     .kpi-card {
         background-color: #f8fafc;
         border: 1px solid #cbd5e1;
-        padding: 6px 8px;
+        padding: 7px 9px;
         vertical-align: top;
     }
     .kpi-title {
         font-size: 8.2pt;
         font-weight: bold;
         margin-bottom: 2px;
+        line-height: 1.3;
     }
     .kpi-value {
         font-size: 12pt;
         font-weight: bold;
         color: #0f172a;
-        margin-bottom: 2px;
+        margin-bottom: 3px;
     }
     .ticker-tag {
-        font-size: 8.5pt;
+        font-size: 8.2pt;
+        font-weight: normal;
         color: #64748b;
     }
     .kpi-line {
-        font-size: 8.0pt;
+        font-size: 8.4pt;
         color: #334155;
         line-height: 1.38;
-        margin-bottom: 1px;
+        margin-bottom: 1.5px;
     }
     h2 {
-        font-size: 12pt;
+        font-size: 11pt;
         font-weight: bold;
         color: #0f172a;
-        margin: 16px 0 6px 0;
-        padding-top: 4px;
+        margin: 14px 0 6px 0;
+        padding-top: 3px;
         padding-bottom: 3px;
         border-bottom: 1.5px solid #cbd5e1;
+        page-break-after: avoid;
     }
-    table.data-table {
+    .dim-table {
         width: 100%;
-        margin-bottom: 10px;
-        font-size: 8.5pt;
+        border-collapse: collapse;
+        margin-bottom: 6px;
+        page-break-inside: avoid;
     }
-    table.data-table th, table.data-table td {
-        border: 1px solid #cbd5e1;
-        padding: 4.5px 6px;
-        text-align: left;
-        vertical-align: top;
-        line-height: 1.38;
-    }
-    table.data-table th {
+    .dim-hdr {
         background-color: #f1f5f9;
         color: #0f172a;
         font-weight: bold;
         font-size: 8.8pt;
+        padding: 4.5px 7px;
+        border: 1px solid #cbd5e1;
+        text-align: left;
     }
-    .th-sub {
-        font-size: 7.8pt;
-        color: #475569;
+    .dim-stock {
+        background-color: #f8fafc;
+        color: #0f172a;
+        font-weight: bold;
+        font-size: 8.3pt;
+        padding: 4.5px 6px;
+        border: 1px solid #cbd5e1;
+        vertical-align: top;
+        line-height: 1.38;
+    }
+    .dim-val {
+        background-color: #ffffff;
+        color: #1e293b;
+        font-size: 8.3pt;
+        padding: 4.5px 7px;
+        border: 1px solid #cbd5e1;
+        vertical-align: top;
+        line-height: 1.38;
     }
     .cell-line {
         margin-bottom: 1.5px;
     }
     .sub-note {
         color: #475569;
-        font-size: 7.8pt;
+        font-size: 7.7pt;
     }
     .code-val {
         color: #0f172a;
         font-weight: bold;
     }
+    .trade-card-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 7px;
+        page-break-inside: avoid;
+    }
+    .tc-hdr {
+        background-color: #f1f5f9;
+        color: #0f172a;
+        font-size: 8.8pt;
+        padding: 5px 7px;
+        border: 1px solid #cbd5e1;
+        text-align: left;
+    }
+    .tc-cell {
+        background-color: #ffffff;
+        padding: 4.5px 7px;
+        border: 1px solid #cbd5e1;
+        vertical-align: top;
+    }
+    .tc-label {
+        font-size: 7.6pt;
+        color: #64748b;
+        margin-bottom: 1px;
+    }
+    .tc-val {
+        font-size: 8.8pt;
+        font-weight: bold;
+        color: #0f172a;
+        line-height: 1.32;
+    }
+    .tc-obs-cell {
+        background-color: #f8fafc;
+        padding: 5px 7px;
+        border: 1px solid #cbd5e1;
+    }
+    .tc-obs {
+        font-size: 8.2pt;
+        color: #334155;
+        line-height: 1.4;
+    }
     .thesis-table {
         width: 100%;
-        margin-bottom: 8px;
+        border-collapse: collapse;
+        margin-bottom: 7px;
+        page-break-inside: avoid;
     }
     .thesis-cell {
         border: 1px solid #cbd5e1;
-        padding: 8px 10px;
+        padding: 7px 9px;
         vertical-align: top;
     }
     .thesis-header {
-        font-size: 9.8pt;
+        font-size: 9.4pt;
         font-weight: bold;
         color: #0f172a;
         margin-bottom: 3px;
+        line-height: 1.35;
     }
     .thesis-body {
         font-size: 8.8pt;
         color: #1e293b;
-        line-height: 1.48;
+        line-height: 1.46;
     }
     .disclaimer {
-        font-size: 7.8pt;
+        font-size: 7.5pt;
         color: #64748b;
-        margin-top: 14px;
+        margin-top: 12px;
         padding-top: 6px;
         border-top: 1px solid #cbd5e1;
         text-align: center;
@@ -1555,7 +1883,54 @@ def generate_comparison_pdf(html_content: str, output_pdf_path: str) -> bool:
     }
     """
     pdf_css = pdf_css.replace("__CJK_WRAP__", cjk_wrap_rule)
-    pdf_html = re.sub(r"<style>.*?</style>", f"<style>\n{font_face_str}\n{pdf_css}\n</style>", pdf_html, flags=re.DOTALL)
+
+    meta_line1 = f"对比标的: {tickers_str}" if is_zh else f"Tickers: {tickers_str}"
+    meta_line2 = (
+        f"投研日期: {analysis_date} ｜ 时间级别: 日线级别 ｜ 数据周期: 近1年 ｜ 结算货币: {curr_label}"
+        if is_zh
+        else f"Date: {analysis_date} | Timeframe: Daily | Period: 1Y | Currency: {curr_label}"
+    )
+    title_txt = "投资对比研判报告" if is_zh else "Investment Comparison Report"
+    sec1_title = "一、核心量化与基本面对比矩阵" if is_zh else "1. Core Quantitative & Fundamental Matrix"
+    sec2_title = "二、战术交易点位与风控对比" if is_zh else "2. Tactical Trade Setup & Risk Control"
+    sec3_title = "三、机构综合排序与配置建议" if is_zh else "3. Institutional Priority Ranking & Recommendations"
+    disclaimer_txt = (
+        "免责声明：本投资对比研判报告由量化投研模型自动生成，融合量化技术指标与财务报表数据。<br/>仅供学习、研究与交流讨论，不构成任何投资建议、买卖要约或推荐。金融市场具有高波动性与本金损失风险，投资需独立审慎决策。"
+        if is_zh
+        else "Disclaimer: This investment comparison report was generated automatically by a quantitative research model integrating technical indicators and financial statement data.<br/>For educational and research purposes only; not investment advice. Financial markets carry high volatility and risk of loss."
+    )
+
+    pdf_html = f"""<!DOCTYPE html>
+<html lang="{'zh-CN' if is_zh else 'en'}">
+<head>
+    <meta charset="UTF-8">
+    <title>Multi-Stock Comparison Report</title>
+    <style>
+{font_face_str}
+{pdf_css}
+    </style>
+</head>
+<body>
+    <div class="header-banner">
+        <h1>{title_txt}</h1>
+        <div class="header-stocks">{names_str}</div>
+        <div class="meta-row">{meta_line1}<br/>{meta_line2}</div>
+    </div>
+
+    {kpi_stack_html}
+
+    <h2>{sec1_title}</h2>
+    {section1_html}
+
+    <h2>{sec2_title}</h2>
+    {section2_html}
+
+    <h2>{sec3_title}</h2>
+    {section3_html}
+
+    <div class="disclaimer">{disclaimer_txt}</div>
+</body>
+</html>"""
 
     def link_callback(uri, rel):
         fname = os.path.basename(uri)
@@ -1670,12 +2045,13 @@ def main():
     pdf_path = os.path.join(target_dir, f"{report_base}.pdf")
     json_path = os.path.join(target_dir, "comparison_data.json")
 
+    align_ttm = should_align_ttm(scored_items)
     rows = format_stock_row_cells(scored_items, is_zh=is_zh)
-    recs = [build_priority_recommendation(it, idx, len(scored_items), is_zh=is_zh) for idx, it in enumerate(scored_items)]
+    recs = [build_priority_recommendation(it, idx, len(scored_items), is_zh=is_zh, align_ttm=align_ttm) for idx, it in enumerate(scored_items)]
 
     generate_comparison_markdown(scored_items, recs, rows, md_path, args.output_dir, is_zh=is_zh)
-    html_content = generate_comparison_html(scored_items, recs, rows, html_path, args.output_dir, is_zh=is_zh)
-    generate_comparison_pdf(html_content, pdf_path)
+    generate_comparison_html(scored_items, recs, rows, html_path, args.output_dir, is_zh=is_zh)
+    generate_comparison_pdf(scored_items, recs, rows, pdf_path, is_zh=is_zh)
 
     comp_json = {
         "analysis_date": scored_items[0]["metadata"].get("analysis_date"),
