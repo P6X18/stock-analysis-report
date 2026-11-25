@@ -1,6 +1,6 @@
-# Stock Analysis Report (`stock-analysis-report`)
+# Stock Analysis Report
 
-An agent skill and standalone Python toolkit integrating **Fundamental Analysis** (moat, 3-year financial trajectory, and 10-year PE percentile bands) with **Technical Analysis** (market structure, SMAs, RSI, MACD, Bollinger Bands, and R:R trade setups) into multilingual **HTML, mobile-native PDF, Markdown, PNG, and JSON** reports.
+An agent skill and standalone Python toolkit integrating **Fundamental Analysis** with **Technical Analysis** into multilingual reports.
 
 > **Core Philosophy**: Fundamentals identify *what* to buy or avoid (business value & margin of safety); Technicals determine *when* and *at what price* to execute (trend alignment & risk-reward).
 
